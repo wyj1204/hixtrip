@@ -12,9 +12,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version> <!-- 确保这里有一个有效的版本 -->
                 <configuration>
-                    <source>16</source>
-                    <target>16</target>
+                    <source>1.8</source> <!-- Java版本 -->
+                    <target>1.8</target> <!-- Java版本 -->
                 </configuration>
             </plugin>
         </plugins>
