@@ -24,27 +24,16 @@ public class InventoryRepositoryImpl implements InventoryRepository {
     @Autowired
     private RedissonClient redissonClient;
 
-    /***
-     *
-     * 初始化商品缓存中的内存
-     *
-     * @param skuId 商品id
-     * @param amount 库存数量
-     */
-    private void initSkuInventory(String skuId, Long expire, Integer amount) {
-        addStock(skuId, expire, amount);
-    }
-
 
     /**
-     * 加库存
+     * 减库存
      *
      * @param skuId  商品id
      * @param expire 过期时间（秒）
      * @param num    库存数量
      * @return
      */
-    public long addStock(String skuId, Long expire, int num) {
+    public boolean decStock(String skuId, Long expire, int num) {
         // 库存ID
         String redisKey = "redis_key:stock:" + skuId;
         Assert.notNull(expire, "初始化库存失败，库存过期时间不能为null");
@@ -53,22 +42,21 @@ public class InventoryRepositoryImpl implements InventoryRepository {
         try {
             if (redisLock.tryLock(10, TimeUnit.SECONDS)) {
                 boolean hasKey = redisTemplate.hasKey(redisKey);
-                // 判断key是否存在，存在就直接更新
-                if (hasKey) {
-                    return redisTemplate.opsForValue().increment(redisKey, num);
-                } else {
-                    // 初始化库存
-                    redisTemplate.opsForValue().set(redisKey, num, expire, TimeUnit.SECONDS);
-
+                // 判断key是否存在和缓存中的库存是否大于0
+                if (hasKey && (Integer) redisTemplate.opsForValue().get(redisKey) > 0) {
+                    redisTemplate.opsForValue().decrement(redisKey, num);
+                    return true;
                 }
+            } else {
+                log.info("服务繁忙清稍后在试!");
+                return false;
             }
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         } finally {
             redisLock.unlock();
         }
-        return num;
+        return false;
     }
-
 
 }
